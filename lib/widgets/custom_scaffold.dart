@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class CustomScaffold extends StatelessWidget {
   const CustomScaffold({super.key, this.child});
   final Widget? child;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -14,9 +15,9 @@ class CustomScaffold extends StatelessWidget {
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          Image.asset(
-            'assets/images/bg1.png',
-            fit: BoxFit.cover,
+          // Use a Container with a white background
+          Container(
+            color: Colors.white,
             width: double.infinity,
             height: double.infinity,
           ),
