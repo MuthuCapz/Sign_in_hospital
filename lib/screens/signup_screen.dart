@@ -27,26 +27,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: CustomScaffold(
           child: Column(
             children: [
-              // Arrow back icon at the top of the body
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.arrow_back,
-                      color: lightColorScheme
-                          .primary, // Change icon color if needed
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-              ),
               Expanded(
                 child: SingleChildScrollView(
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(
-                        25.0, 30.0, 25.0, 20.0), // Adjust padding
+                        25.0, 10.0, 25.0, 20.0), // Adjust padding
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.only(
@@ -88,7 +73,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             },
                             decoration: InputDecoration(
                               labelText: 'Name',
-                              hintText: 'Arun',
                               hintStyle: const TextStyle(
                                 color: Colors.black26,
                               ),
@@ -114,7 +98,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             },
                             decoration: InputDecoration(
                               labelText: 'Email',
-                              hintText: 'Arun@gmail.com',
                               hintStyle: const TextStyle(
                                 color: Colors.black26,
                               ),
@@ -141,7 +124,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             },
                             decoration: InputDecoration(
                               labelText: 'Password',
-                              hintText: '123456_7890',
                               hintStyle: const TextStyle(
                                 color: Colors.black26,
                               ),
