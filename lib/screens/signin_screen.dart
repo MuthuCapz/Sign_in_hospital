@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:signin/screens/signup_screen.dart';
+import 'package:signin/screens/verify_code_screen.dart'; // Import VerifyCodeScreen
 import 'home_screen.dart'; // Import the EmptyScreen
+
+void main() {
+  runApp(const SignInScreen());
+}
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -146,6 +151,14 @@ class _SignInScreenState extends State<SignInScreen> {
                           ],
                         ),
                         GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const VerifyCodeScreen(),
+                              ),
+                            );
+                          },
                           child: const Text(
                             'Forgot Password?',
                             style: TextStyle(
@@ -175,7 +188,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const HomeScreen(),
+                                builder: (context) => HomeScreen(),
                               ),
                             );
                           } else if (!rememberPassword) {

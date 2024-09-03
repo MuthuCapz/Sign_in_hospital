@@ -4,7 +4,9 @@ import 'package:signin/screens/splash_screen.dart';
 
 import 'package:signin/theme/theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
