@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:icons_plus/icons_plus.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth
+import 'package:icons_plus/icons_plus.dart'; // Icon pack
 import 'package:signin/screens/signup_screen.dart';
 import 'package:signin/screens/verify_code_screen.dart'; // Import VerifyCodeScreen
-import 'home_screen.dart'; // Import the EmptyScreen
-
-void main() {
-  runApp(const SignInScreen());
-}
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Authentication
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart'; // Facebook Auth package
+import 'home_screen.dart'; // Import the HomeScreen
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -20,6 +19,74 @@ class _SignInScreenState extends State<SignInScreen> {
   final _formSignInKey = GlobalKey<FormState>();
   bool rememberPassword = true;
   bool obscurePassword = true;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Facebook sign-in method
+  Future<void> _signInWithFacebook(BuildContext context) async {
+    try {
+      final LoginResult result =
+          await FacebookAuth.instance.login(); // Trigger the login flow
+
+      if (result.status == LoginStatus.success) {
+        // Get the access token
+        final AccessToken? accessToken = result.accessToken;
+
+        // Create a credential from the access token
+        final OAuthCredential credential =
+            FacebookAuthProvider.credential(accessToken!.token);
+
+        // Sign in with Firebase
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+        // Navigate to the home screen after successful login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else if (result.status == LoginStatus.cancelled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Facebook login cancelled by user')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Facebook login failed: ${result.message}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred: $e')),
+      );
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _emailController.text;
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your Email')),
+      );
+      return;
+    }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset email sent!')),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = 'An error occurred. Please try again later.';
+      if (e.code == 'user-not-found') {
+        message = 'No user found for that email. Please sign up.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +127,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextFormField(
+                      controller: _emailController,
                       validator: (value) {
                         final emailRegex =
                             RegExp(r'^[a-z0-9._%+-]+@gmail\.com$');
@@ -88,6 +156,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                     const SizedBox(height: 30),
                     TextFormField(
+                      controller: _passwordController,
                       obscureText: obscurePassword,
                       obscuringCharacter: '*',
                       validator: (value) {
@@ -139,8 +208,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                   rememberPassword = value!;
                                 });
                               },
-                              activeColor: Colors
-                                  .blue, // Change to your theme's primary color
+                              activeColor: Colors.blue,
                             ),
                             const Text(
                               'Remember me',
@@ -152,19 +220,13 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const VerifyCodeScreen(),
-                              ),
-                            );
+                            _resetPassword();
                           },
                           child: const Text(
                             'Forgot Password?',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors
-                                  .blue, // Change to your theme's primary color
+                              color: Colors.blue,
                             ),
                           ),
                         ),
@@ -176,28 +238,43 @@ class _SignInScreenState extends State<SignInScreen> {
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 15.0),
-                          backgroundColor: Colors
-                              .blue, // Change to your theme's primary color
+                          backgroundColor: Colors.blue,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        onPressed: () {
-                          if (_formSignInKey.currentState!.validate() &&
-                              rememberPassword) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => HomeScreen(),
-                              ),
-                            );
-                          } else if (!rememberPassword) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'Please agree to the processing of personal data'),
-                              ),
-                            );
+                        onPressed: () async {
+                          if (_formSignInKey.currentState!.validate()) {
+                            try {
+                              final email = _emailController.text;
+                              final password = _passwordController.text;
+
+                              // Sign in with Firebase
+                              UserCredential userCredential =
+                                  await _auth.signInWithEmailAndPassword(
+                                email: email,
+                                password: password,
+                              );
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const HomeScreen(),
+                                ),
+                              );
+                            } on FirebaseAuthException catch (e) {
+                              String message =
+                                  'Incorrect email or password. Please try again.';
+                              if (e.code == 'user-not-found') {
+                                message = 'No user found for that email.';
+                              } else if (e.code == 'wrong-password') {
+                                message =
+                                    'Wrong password provided for that user.';
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(message)),
+                              );
+                            }
                           }
                         },
                         child: const Text(
@@ -239,44 +316,35 @@ class _SignInScreenState extends State<SignInScreen> {
                       children: [
                         Logo(Logos.apple),
                         Logo(Logos.google),
-                        Logo(Logos.facebook_f),
+                        GestureDetector(
+                          onTap: () {
+                            _signInWithFacebook(context); // Facebook login
+                          },
+                          child: Logo(Logos.facebook_f),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 40),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Don\'t have an account?',
-                          style: TextStyle(
-                            color: Colors.black45,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
+                        const Text('Don\'t have an account?'),
+                        TextButton(
+                          onPressed: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (e) => const SignUpScreen(),
+                                builder: (context) => const SignUpScreen(),
                               ),
                             );
                           },
-                          child: const Text(
-                            ' Sign Up',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors
-                                  .blue, // Change to your theme's primary color
-                            ),
-                          ),
+                          child: const Text('Sign Up'),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 40),
                   ],
                 ),
-              ),
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.1,
               ),
             ],
           ),
