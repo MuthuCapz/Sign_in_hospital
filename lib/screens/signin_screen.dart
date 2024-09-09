@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth
-import 'package:icons_plus/icons_plus.dart'; // Icon pack
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart'; // Import Facebook Auth
+import 'package:icons_plus/icons_plus.dart';
 import 'package:signin/screens/signup_screen.dart';
 import 'package:signin/screens/verify_code_screen.dart'; // Import VerifyCodeScreen
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Authentication
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart'; // Facebook Auth package
 import 'home_screen.dart'; // Import the HomeScreen
 
 class SignInScreen extends StatefulWidget {
@@ -23,44 +23,6 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  // Facebook sign-in method
-  Future<void> _signInWithFacebook(BuildContext context) async {
-    try {
-      final LoginResult result =
-          await FacebookAuth.instance.login(); // Trigger the login flow
-
-      if (result.status == LoginStatus.success) {
-        // Get the access token
-        final AccessToken? accessToken = result.accessToken;
-
-        // Create a credential from the access token
-        final OAuthCredential credential =
-            FacebookAuthProvider.credential(accessToken!.token);
-
-        // Sign in with Firebase
-        await FirebaseAuth.instance.signInWithCredential(credential);
-
-        // Navigate to the home screen after successful login
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      } else if (result.status == LoginStatus.cancelled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Facebook login cancelled by user')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Facebook login failed: ${result.message}')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred: $e')),
-      );
-    }
-  }
 
   Future<void> _resetPassword() async {
     final email = _emailController.text;
@@ -84,6 +46,45 @@ class _SignInScreenState extends State<SignInScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
+      );
+    }
+  }
+
+  // Facebook Login
+  Future<void> _signInWithFacebook() async {
+    try {
+      // Trigger the Facebook sign-in flow
+      final LoginResult result = await FacebookAuth.instance.login();
+
+      if (result.status == LoginStatus.success) {
+        // Obtain the access token from the result object
+        final accessToken = result.accessToken!.token;
+
+        // Use the access token to create a Facebook credential
+        final OAuthCredential facebookAuthCredential =
+            FacebookAuthProvider.credential(accessToken);
+
+        // Sign in with the Facebook credential into Firebase
+        UserCredential userCredential =
+            await _auth.signInWithCredential(facebookAuthCredential);
+
+        // Navigate to HomeScreen after successful login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen()),
+        );
+      } else if (result.status == LoginStatus.cancelled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Facebook login cancelled')),
+        );
+      } else if (result.status == LoginStatus.failed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Facebook login failed: ${result.message}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred: $e')),
       );
     }
   }
@@ -259,7 +260,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const HomeScreen(),
+                                  builder: (context) => HomeScreen(),
                                 ),
                               );
                             } on FirebaseAuthException catch (e) {
@@ -271,6 +272,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 message =
                                     'Wrong password provided for that user.';
                               }
+
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text(message)),
                               );
@@ -279,77 +281,79 @@ class _SignInScreenState extends State<SignInScreen> {
                         },
                         child: const Text(
                           'Sign In',
-                          style: TextStyle(fontSize: 16.0),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18.0,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 40),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            thickness: 0.7,
-                            color: Colors.grey.withOpacity(0.5),
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10.0),
-                          child: Text(
-                            'Or Sign in with',
-                            style: TextStyle(
-                              color: Colors.black45,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Divider(
-                            thickness: 0.7,
-                            color: Colors.grey.withOpacity(0.5),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Logo(Logos.apple),
-                        Logo(Logos.google),
-                        GestureDetector(
-                          onTap: () {
-                            _signInWithFacebook(context); // Facebook login
-                          },
-                          child: Logo(Logos.facebook_f),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('Don\'t have an account?'),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SignUpScreen(),
-                              ),
-                            );
-                          },
-                          child: const Text('Sign Up'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
                   ],
                 ),
+              ),
+              const SizedBox(height: 30),
+              const Text(
+                'Or continue with',
+                style: TextStyle(color: Colors.black45),
+              ),
+              const SizedBox(height: 30),
+              // Facebook Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 15.0),
+                    backgroundColor: Colors.blue[800], // Facebook blue
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () {
+                    _signInWithFacebook();
+                  },
+                  icon: Logo(Logos.facebook_f),
+                  label: const Text('Continue with Facebook'),
+                ),
+              ),
+              const SizedBox(height: 100),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Don\'t have an account?',
+                    style: TextStyle(color: Colors.black45),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SignUpScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Sign Up',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
     );
+  }
+}
+
+// Add this at the top of your Dart file
+extension AccessTokenExtension on AccessToken {
+  // Create a getter for token
+  String get token {
+    return this.token!;
   }
 }
